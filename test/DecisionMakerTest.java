@@ -5,9 +5,9 @@ import problem.ProblemSpec;
 import simulator.Simulator;
 import simulator.State;
 
+import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.*;
 
 public class DecisionMakerTest {
     @Test
@@ -21,6 +21,30 @@ public class DecisionMakerTest {
         List<Action> bestActions = decisionMaker.findBestActions(state, 0.8f);
         for(int i = 0; i < bestActions.size(); i++) {
             System.out.println("Action " + i +": "+ bestActions.get(i).getActionType());
+        }
+    }
+
+    @Test
+    public void completeTest1() throws IOException {
+        int level = 1;
+        String inputFile = "examples/level_" + level + "/input_lvl" + level + ".txt";
+        String outputFile = "examples/level_" + level + "/output_lvl" + level + ".txt";;
+        ProblemSpec ps = new ProblemSpec(inputFile);
+        Simulator sim = new Simulator(ps, outputFile);
+        DecisionMaker dm = new DecisionMaker(ps);
+        System.out.println(ps.toString());
+        State state = sim.reset();
+        Action action;
+        while (state != null) {
+            action = dm.getAction(state);
+            state = sim.step(action);
+            if (sim.isGoalState(state)) {
+                System.out.println("GOOOOOOAAAAAL!!");
+                break;
+            }
+        }
+        if (state == null) {
+            System.out.println("Failure :(");
         }
     }
 

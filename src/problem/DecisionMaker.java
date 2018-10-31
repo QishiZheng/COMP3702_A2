@@ -1,44 +1,37 @@
 package problem;
 
-import simulator.Simulator;
 import simulator.State;
-
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
-    private Queue<Action> actionSequence;
-    //might not need ps in DecisionMaker
+    private LinkedList<Action> actionSequence;
     private ProblemSpec ps;
     private List<TirePressure> pressures;
 
     public DecisionMaker(ProblemSpec ps) {
         this.ps = ps;
-        actionSequence = new LinkedBlockingQueue<>();
+        actionSequence = new LinkedList<>();
         pressures = new LinkedList<>();
         pressures.add(TirePressure.FIFTY_PERCENT);
         pressures.add(TirePressure.SEVENTY_FIVE_PERCENT);
         pressures.add(TirePressure.ONE_HUNDRED_PERCENT);
     }
 
-    public Action getAction() {
+    /**
+     * Get action based on current position
+     *
+     * @param state State instance
+     * @return Action taken
+     */
+    public Action getAction(State state) {
         if (actionSequence.isEmpty()) {
-            getSequence();
+            actionSequence = (LinkedList<Action>) findBestActions(state, (float) this.ps.getDiscountFactor());
         }
         return actionSequence.poll();
-    }
-
-    private void getSequence() {
-        //TODO implementation
-        this.actionSequence = null;
     }
 
     /**
@@ -46,22 +39,22 @@ public class DecisionMaker {
      *
      * @return List of action sequence
      */
-    public List<List<Action>> getAllAction() {
+    public List<List<Action>> getAllAction(State state) {
         List<List<Action>> rtn = new LinkedList<>();
         List<ActionType> actions = new LinkedList<>();
         actions.add(ActionType.CHANGE_CAR);
         actions.add(ActionType.CHANGE_DRIVER);
+        actions.add(ActionType.CHANGE_TIRES);
         if (ps.getLevel().getLevelNumber() > 1) {
-            actions.add(ActionType.CHANGE_TIRES);
+            actions.add(ActionType.CHANGE_PRESSURE);
         }
-        actions.add(ActionType.CHANGE_PRESSURE);
         LinkedList<Action> move = new LinkedList<>();
         move.add(new Action(ActionType.MOVE));
         rtn.add(move);
         while (actions.size() != 0) {
             List<ActionType> chain = new LinkedList<>();
-            rtn.addAll(buildActionTypeList(chain, ((LinkedList<ActionType>) actions).getFirst(), ps));
-            rtn.addAll(subActions(actions, ((LinkedList<ActionType>) actions).getFirst(), ps, chain));
+            rtn.addAll(buildActionTypeList(chain, ((LinkedList<ActionType>) actions).getFirst(), ps, state));
+            rtn.addAll(subActions(actions, ((LinkedList<ActionType>) actions).getFirst(), ps, state, chain));
             ((LinkedList<ActionType>) actions).removeFirst();
         }
         return rtn;
@@ -75,7 +68,7 @@ public class DecisionMaker {
      * @return
      */
     public List<Action> findBestActions(State state, float discount) {
-        List<List<Action>> actionSequences = this.getAllAction();
+        List<List<Action>> actionSequences = this.getAllAction(state);
         float values[] = new float[actionSequences.size()];
         float maxValue = getValue(state, actionSequences.get(0), discount);
         int maxIndex = 0;
@@ -329,7 +322,7 @@ public class DecisionMaker {
      * @param chain List previous taken actions
      * @return List of action sequence
      */
-    private List<List<Action>> subActions(List<ActionType> available, ActionType parentAction, ProblemSpec ps, List<ActionType> chain) {
+    private List<List<Action>> subActions(List<ActionType> available, ActionType parentAction, ProblemSpec ps, State state, List<ActionType> chain) {
         chain.add(parentAction);
         List<List<Action>> rtn = new LinkedList<>();
         List<ActionType> list = new LinkedList<>();
@@ -342,10 +335,10 @@ public class DecisionMaker {
         while (list.size() != 0) {
             ActionType type = ((LinkedList<ActionType>) list).getFirst();
             ((LinkedList<ActionType>) list).removeFirst();
-            rtn.addAll(buildActionTypeList(chain, type, ps));
+            rtn.addAll(buildActionTypeList(chain, type, ps, state));
             List<ActionType> childChain = new LinkedList<>();
             childChain.addAll(chain);
-            rtn.addAll(subActions(list, type, ps, childChain));
+            rtn.addAll(subActions(list, type, ps, state, childChain));
         }
         return rtn;
     }
@@ -358,7 +351,7 @@ public class DecisionMaker {
      * @param ps ProblemSpec instance
      * @return List of action sequence
      */
-    private List<List<Action>> buildActionTypeList (List<ActionType> chain, ActionType currentAction, ProblemSpec ps) {
+    private List<List<Action>> buildActionTypeList (List<ActionType> chain, ActionType currentAction, ProblemSpec ps, State state) {
         List<ActionType> actionTypes = new LinkedList<>();
         LinkedList<Action> actionList = new LinkedList<>();
         List<List<Action>> collector = new LinkedList<>();
@@ -366,7 +359,7 @@ public class DecisionMaker {
             actionTypes.add(type);
         }
         actionTypes.add(currentAction);
-        iterateParams(actionTypes, actionList, ps, collector);
+        iterateParams(actionTypes, actionList, ps, state, collector);
         return collector;
     }
 
@@ -378,31 +371,40 @@ public class DecisionMaker {
      * @param ps ProblemSpec instance
      * @param collector List result sequence of actions
      */
-    private void iterateParams(List<ActionType> actionTypes, LinkedList<Action> actionList, ProblemSpec ps, List<List<Action>> collector) {
+    private void iterateParams(List<ActionType> actionTypes, LinkedList<Action> actionList, ProblemSpec ps, State state, List<List<Action>> collector) {
         ActionType type = actionTypes.get(0);
         Action action;
         switch (type) {
             case CHANGE_CAR:
                 for (String brand: ps.getCarOrder()) {
+                    if (state.getCarType().equals(brand)) {
+                        continue;
+                    }
                     action = new Action(type, brand);
                     actionList.add(action);
-                    checkIfEnd(actionTypes, actionList, collector, ps);
+                    checkIfEnd(actionTypes, actionList, collector, ps, state);
                     actionList.removeLast();
                 }
                 break;
             case CHANGE_DRIVER:
                 for (String driver: ps.getDriverOrder()) {
+                    if (state.getDriver().equals(driver)) {
+                        continue;
+                    }
                     action = new Action(type, driver);
                     actionList.add(action);
-                    checkIfEnd(actionTypes, actionList, collector, ps);
+                    checkIfEnd(actionTypes, actionList, collector, ps, state);
                     actionList.removeLast();
                 }
                 break;
             case CHANGE_TIRES:
                 for (Tire tire: ps.getTireOrder()) {
+                    if (state.getTireModel().asString().equals(tire.asString())) {
+                        continue;
+                    }
                     action = new Action(type, tire);
                     actionList.add(action);
-                    checkIfEnd(actionTypes, actionList, collector, ps);
+                    checkIfEnd(actionTypes, actionList, collector, ps, state);
                     actionList.removeLast();
                 }
                 break;
@@ -410,7 +412,7 @@ public class DecisionMaker {
                 for (TirePressure pressure: this.pressures) {
                     action = new Action(type, pressure);
                     actionList.add(action);
-                    checkIfEnd(actionTypes, actionList, collector, ps);
+                    checkIfEnd(actionTypes, actionList, collector, ps, state);
                     actionList.removeLast();
                 }
                 break;
@@ -426,14 +428,14 @@ public class DecisionMaker {
      * @param collector List result sequence of actions
      * @param ps ProblemSpec instance
      */
-    private void checkIfEnd(List<ActionType> actionTypes, LinkedList<Action> actionList, List<List<Action>> collector, ProblemSpec ps) {
+    private void checkIfEnd(List<ActionType> actionTypes, LinkedList<Action> actionList, List<List<Action>> collector, ProblemSpec ps, State state) {
         if (actionTypes.size() == 1) {
             List<Action> result = new LinkedList<>();
             result.addAll(actionList);
             result.add(new Action(ActionType.MOVE));
             collector.add(result);
         } else {
-            iterateParams(actionTypes.subList(1, actionTypes.size()), actionList, ps, collector);
+            iterateParams(actionTypes.subList(1, actionTypes.size()), actionList, ps, state, collector);
         }
     }
 
