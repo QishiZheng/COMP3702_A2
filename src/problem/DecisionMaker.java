@@ -85,7 +85,6 @@ public class DecisionMaker {
                 maxIndex = i;
                 maxValue = values[i];
             }
-            System.out.println("i: " + i +" "+ maxValue + " " + values[i]);
         }
 
         return actionSequences.get(maxIndex);
