@@ -1,8 +1,10 @@
 package problem;
 
+import simulator.Simulator;
 import simulator.State;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import java.util.List;
@@ -14,37 +16,36 @@ import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
 
-    private Queue<Action> ActionSequence;
+    private Queue<Action> actionSequence;
     private ProblemSpec ps;
 
     //Construct a DecisionMaker with an input txt file
     public DecisionMaker(String fileName) {
         try {
-            ps = new ProblemSpec(fileName);
+            this.ps = new ProblemSpec(fileName);
+            this.actionSequence = new LinkedBlockingQueue<>();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void DecisionMaker() {
-        ActionSequence = new LinkedBlockingQueue<>();
+        actionSequence = new LinkedBlockingQueue<>();
     }
 
-
-
     public Action getAction() {
-        if (ActionSequence.isEmpty()) {
+        if (actionSequence.isEmpty()) {
             getSequence();
         }
-        return ActionSequence.poll();
+        return actionSequence.poll();
     }
 
     private void getSequence() {
         //TODO implementation
-        this.ActionSequence = null;
+        this.actionSequence = null;
     }
 
-    public List<List<Action>> getAllAction(ProblemSpec ps) {
+    public List<List<Action>> getAllAction() {
         List<List<Action>> rtn = new LinkedList<>();
         List<ActionType> actions = new LinkedList<>();
         actions.add(ActionType.CHANGE_CAR);
@@ -64,13 +65,90 @@ public class DecisionMaker {
     }
 
     /**
+     * based on given state and discount factor, find out best reward actions
+     *
+     * @param state
+     * @param discount
+     * @return
+     */
+    private List<Action> findBestActions(State state, float discount) {
+        List<List<Action>> actionSequences = this.getAllAction();
+        float values[] = new float[actionSequences.size()];
+        float maxValue = 0f;
+        int maxIndex = 0;
+        for(int i = 0; i < actionSequences.size(); i++) {
+            values[i] = getValue(state, actionSequences.get(i), discount);
+            if(maxValue < values[i]) {
+                maxIndex = i;
+                maxValue = values[i];
+            }
+        }
+
+        return actionSequences.get(maxIndex);
+    }
+
+    /**
+     * return the value of given state among all actions
+     *
+     * Value = R(s) + discount * (Σ T(s, a, s')V(s'))
+     * @param state
+     * @return value of the sequence actions
+     */
+    private float getValue(State state, List<Action> actions, float discount) {
+        float value = getReward(state);
+        State tempState;
+        for(int i = 0; i < actions.size() - 1; i++) {
+            tempState = act(state, actions.get(i));
+            value += Math.pow(discount, i + 1) * (getReward(tempState));
+        }
+        return value;
+    }
+
+    /**
+     * perform given action(except action A1) and return a new State
+     *
+     * @param state current state
+     * @param action given action
+     * @return state after performing the action
+     */
+    private State act(State state, Action action) {
+        State nextState = state.copyState();
+        switch(action.getActionType().getActionNo()) {
+            case 1:
+                break;
+            case 2:
+                nextState = actA2(state, action);
+                break;
+            case 3:
+                nextState = actA3(state, action);
+                break;
+            case 4:
+                nextState = actA4(state, action);
+                break;
+            case 5:
+                nextState = actA5(state, action);
+                break;
+            case 6:
+                nextState = actA6(state, action);
+                break;
+            case 7:
+                nextState = actA7(state, action);
+                break;
+            default:
+                nextState = actA8(state, action);
+        }
+        return nextState;
+    }
+
+    /**
      * The reward will based on current state and will foc on
      * the distance that each action can take
      * R(s) = (Σprobs[i] * stepDistance) - (slipTime / totalTime) * slipTime
      *          - (breakTime / totalTime) * breakTime;
      * @return current reward
      */
-    private float getReward(ProblemSpec ps, State state, Double[] probs) {
+    private float getReward(State state) {
+        List<Double> probs = getProbs(state);
         float reward = 0f;
         int breakTime = ps.getRepairTime();
         int slipTime = ps.getSlipRecoveryTime();
@@ -86,17 +164,16 @@ public class DecisionMaker {
             for(int i = 0; i < CAR_MOVE_RANGE; i++) {
                 //slip or breakdown
                 if(CAR_MOVE_RANGE + i == 6) {
-                    reward -=  (slipTime / totalTime) * probs[i];
+                    reward -=  (slipTime / totalTime) * probs.get(i);
                 } else if (CAR_MOVE_RANGE + i == 7) {
-                    reward -= (breakTime / totalTime) * probs[i];
+                    reward -= (breakTime / totalTime) * probs.get(i);
                 } else {
-                    reward += (CAR_MIN_MOVE + i) * probs[i];
+                    reward += (CAR_MIN_MOVE + i) * probs.get(i);
                 }
             }
         }
         return reward;
     }
-
 
     /**
      * Get all probs that moving at the currentState might cause
@@ -161,7 +238,6 @@ public class DecisionMaker {
         return probs;
 
     }
-
 
     /**
      * Convert the probability of slipping on a given terrain with 50% tire
@@ -284,4 +360,97 @@ public class DecisionMaker {
         //TODO action parameters
         return null;
     }
+
+    /**
+     * Perform CHANGE_CAR action
+     *
+     * @param a a CHANGE_CAR action object
+     * @return the next state
+     */
+    private State actA2(State state, Action a) {
+        State currentState = state.copyState();
+        if (currentState.getCarType().equals(a.getCarType())) {
+            // changing to same car type does not change state but still costs a step
+            // no cheap refill here, muhahaha
+            return currentState;
+        }
+
+        return currentState.changeCarType(a.getCarType());
+    }
+
+    /**
+     * Perform CHANGE_DRIVER action
+     *
+     * @param a a CHANGE_DRIVER action object
+     * @return the next state
+     */
+    private State actA3(State state, Action a) {
+        State currentState = state.copyState();
+        return currentState.changeDriver(a.getDriverType()); }
+
+    /**
+     * Perform the CHANGE_TIRES action
+     *
+     * @param a a CHANGE_TIRES action object
+     * @return the next state
+     */
+    private State actA4(State state, Action a) {
+        State currentState = state.copyState();
+        return currentState.changeTires(a.getTireModel());
+    }
+
+    /**
+     * Perform the ADD_FUEL action
+     *
+     * @param a a ADD_FUEL action object
+     * @return the next state
+     */
+    private State actA5(State state, Action a) {
+        // calculate number of steps used for refueling (minus 1 since we add
+        // 1 in main function
+        State currentState = state.copyState();
+        int stepsRequired = (int) Math.ceil(a.getFuel() / (float) 10);
+        //steps += (stepsRequired - 1);
+        return currentState.addFuel(a.getFuel());
+    }
+
+    /**
+     * Perform the CHANGE_PRESSURE action
+     *
+     * @param a a CHANGE_PRESSURE action object
+     * @return the next state
+     */
+    private State actA6(State state, Action a) {
+        State currentState = state.copyState();
+        return currentState.changeTirePressure(a.getTirePressure());
+    }
+
+    /**
+     * Perform the CHANGE_CAR_AND_DRIVER action
+     *
+     * @param a a CHANGE_CAR_AND_DRIVER action object
+     * @return the next state
+     */
+    private State actA7(State state, Action a) {
+        State currentState = state.copyState();
+        if (currentState.getCarType().equals(a.getCarType())) {
+            // if car the same, only change driver so no sneaky fuel exploit
+            return currentState.changeDriver(a.getDriverType());
+        }
+        return currentState.changeCarAndDriver(a.getCarType(),
+                a.getDriverType());
+    }
+
+    /**
+     * Perform the CHANGE_TIRE_FUEL_PRESSURE action
+     *
+     * @param a a CHANGE_TIRE_FUEL_PRESSURE action object
+     * @return the next state
+     */
+    private State actA8(State state, Action a) {
+        State currentState = state.copyState();
+        return currentState.changeTireFuelAndTirePressure(a.getTireModel(),
+                a.getFuel(), a.getTirePressure());
+    }
+
 }
