@@ -16,18 +16,20 @@ import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
     private Queue<Action> actionSequence;
-    private ProblemSpec ps;
+    //might not need ps in DecisionMaker
+    //private ProblemSpec ps;
     private List<TirePressure> pressures;
 
+    //might not need ps in DecisionMaker
     //Construct a DecisionMaker with an input txt file
-    public DecisionMaker(String fileName) {
-        try {
-            this.ps = new ProblemSpec(fileName);
-            this.actionSequence = new LinkedBlockingQueue<>();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    public DecisionMaker(String fileName) {
+//        try {
+//            this.ps = new ProblemSpec(fileName);
+//            this.actionSequence = new LinkedBlockingQueue<>();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public DecisionMaker() {
         actionSequence = new LinkedBlockingQueue<>();
@@ -189,10 +191,11 @@ public class DecisionMaker {
     /**
      * Get all probs that moving at the currentState might cause
      * @param currentState the current state of the car is at
+     * @param ps the current problmeSpec loaded
      * @return a list of Double,
      *         represent the probability of moving from -4 to 5, plus slip and breakdown
      */
-    public List<Double> getProbs(State currentState) {
+    public List<Double> getProbs(State currentState, ProblemSpec ps) {
         List<Double> probs = new LinkedList<>();
 
         // get parameters of current state
@@ -215,7 +218,7 @@ public class DecisionMaker {
         double[] pKGivenDriver = ps.getDriverMoveProbability().get(driver);
         double[] pKGivenTire = ps.getTireModelMoveProbability().get(tire);
         double pSlipGivenTerrain = ps.getSlipProbability()[terrainIndex];
-        double[] pKGivenPressureTerrain = convertSlipProbs(pSlipGivenTerrain, currentState.getTirePressure());
+        double[] pKGivenPressureTerrain = convertSlipProbs(pSlipGivenTerrain, currentState.getTirePressure(), ps);
 
         // use bayes rule to get probability of parameter given k
         double[] pCarGivenK = bayesRule(pKGivenCar, priorCar, priorK);
@@ -257,10 +260,11 @@ public class DecisionMaker {
      *
      * @param slipProb probability of slipping on current terrain and 50%
      *                 tire pressure
-     *
+     * @param pressure the tire pressure at current state
+     * @param ps the current problmeSpec loaded
      * @return list of move probabilities given current terrain and pressure
      */
-    private double[] convertSlipProbs(double slipProb, TirePressure pressure) {
+    private double[] convertSlipProbs(double slipProb, TirePressure pressure, ProblemSpec ps) {
 
         // Adjust slip probability based on tire pressure
         //TirePressure pressure = currentState.getTirePressure();
