@@ -15,7 +15,6 @@ import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
-
     private Queue<Action> actionSequence;
     private ProblemSpec ps;
     private List<TirePressure> pressures;
@@ -83,7 +82,7 @@ public class DecisionMaker {
      * @param discount
      * @return
      */
-    private List<Action> findBestActions(State state, float discount) {
+    public List<Action> findBestActions(State state, float discount) {
         List<List<Action>> actionSequences = this.getAllAction();
         float values[] = new float[actionSequences.size()];
         float maxValue = 0f;
