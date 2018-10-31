@@ -77,14 +77,15 @@ public class DecisionMaker {
     public List<Action> findBestActions(State state, float discount) {
         List<List<Action>> actionSequences = this.getAllAction();
         float values[] = new float[actionSequences.size()];
-        float maxValue = 0f;
+        float maxValue = getValue(state, actionSequences.get(0), discount);
         int maxIndex = 0;
-        for(int i = 0; i < actionSequences.size(); i++) {
+        for(int i = 1; i < actionSequences.size(); i++) {
             values[i] = getValue(state, actionSequences.get(i), discount);
             if(maxValue < values[i]) {
                 maxIndex = i;
                 maxValue = values[i];
             }
+            System.out.println("i: " + i +" "+ maxValue + " " + values[i]);
         }
 
         return actionSequences.get(maxIndex);
