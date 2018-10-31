@@ -17,21 +17,11 @@ import static problem.ProblemSpec.CAR_MOVE_RANGE;
 public class DecisionMaker {
     private Queue<Action> actionSequence;
     //might not need ps in DecisionMaker
-    //private ProblemSpec ps;
+    private ProblemSpec ps;
     private List<TirePressure> pressures;
 
-    //might not need ps in DecisionMaker
-    //Construct a DecisionMaker with an input txt file
-//    public DecisionMaker(String fileName) {
-//        try {
-//            this.ps = new ProblemSpec(fileName);
-//            this.actionSequence = new LinkedBlockingQueue<>();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-    public DecisionMaker() {
+    public DecisionMaker(ProblemSpec ps) {
+        this.ps = ps;
         actionSequence = new LinkedBlockingQueue<>();
         pressures = new LinkedList<>();
         pressures.add(TirePressure.FIFTY_PERCENT);
@@ -168,18 +158,18 @@ public class DecisionMaker {
         int totalTime = ps.getMaxT();
         if(state.isInBreakdownCondition()) {
             //breakdown
-            reward -= breakTime * (breakTime / totalTime);
+            reward = reward -  (float)((breakTime / totalTime) * probs.get(10));
         } else if(state.isInSlipCondition()) {
             //slip
-            reward -= slipTime * (slipTime / totalTime);
+            reward = reward - (float)((slipTime / totalTime) * probs.get(11));
         } else {
             //good condition
             for(int i = 0; i < CAR_MOVE_RANGE; i++) {
                 //slip or breakdown
-                if(CAR_MOVE_RANGE + i == 6) {
-                    reward -=  (slipTime / totalTime) * probs.get(i);
-                } else if (CAR_MOVE_RANGE + i == 7) {
-                    reward -= (breakTime / totalTime) * probs.get(i);
+                if(i == 10) {
+                    reward = reward - (float)(((float)slipTime / (float)totalTime) * probs.get(i));
+                } else if (i == 11) {
+                    reward = reward -  (float)(((float)breakTime / (float)totalTime) * probs.get(i));
                 } else {
                     reward += (CAR_MIN_MOVE + i) * probs.get(i);
                 }
@@ -191,11 +181,10 @@ public class DecisionMaker {
     /**
      * Get all probs that moving at the currentState might cause
      * @param currentState the current state of the car is at
-     * @param ps the current problmeSpec loaded
      * @return a list of Double,
      *         represent the probability of moving from -4 to 5, plus slip and breakdown
      */
-    public List<Double> getProbs(State currentState, ProblemSpec ps) {
+    public List<Double> getProbs(State currentState) {
         List<Double> probs = new LinkedList<>();
 
         // get parameters of current state
