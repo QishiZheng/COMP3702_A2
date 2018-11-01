@@ -556,6 +556,10 @@ public class ProblemSpec {
         return index;
     }
 
+    public List<Terrain> getTerrainOrder() {
+        return terrainOrder;
+    }
+
     /**
      * Return the index of tire Model in terms of order in which is appeared in
      * input file.

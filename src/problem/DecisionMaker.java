@@ -8,6 +8,8 @@ import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
+    //-4*(1/12) + -3*(1/12) .... + 4*(1/12) + 5*(1/12) = 5/12 = 0.417
+    private final float AVERAGE_MOVE_DIS = 0.417f;
     private LinkedList<Action> actionSequence;
     private ProblemSpec ps;
     private List<TirePressure> pressures;
@@ -92,11 +94,12 @@ public class DecisionMaker {
      */
     private float getValue(State state, List<Action> actions, float discount) {
         float value = getReward(state);
-        State tempState;
+        State tempState = state.copyState();
         for(int i = 0; i < actions.size() - 1; i++) {
-            tempState = act(state, actions.get(i));
-            value += Math.pow(discount, i + 1) * (getReward(tempState));
+            tempState = act(tempState, actions.get(i));
+            //value += Math.pow(discount, i + 1) * (getReward(tempState));
         }
+        value = getReward(tempState);
         return value;
     }
 
@@ -160,9 +163,9 @@ public class DecisionMaker {
             for(int i = 0; i < CAR_MOVE_RANGE; i++) {
                 //slip or breakdown
                 if(i == 10) {
-                    reward = reward - (float)(((float)slipTime / (float)totalTime) * probs.get(i));
+                    reward = reward - (float)(AVERAGE_MOVE_DIS * slipTime * ((float)slipTime / totalTime) * probs.get(i));
                 } else if (i == 11) {
-                    reward = reward -  (float)(((float)breakTime / (float)totalTime) * probs.get(i));
+                    reward = reward -  (float)(AVERAGE_MOVE_DIS * breakTime * ((float)breakTime / totalTime) * probs.get(i));
                 } else {
                     reward += (CAR_MIN_MOVE + i) * probs.get(i);
                 }
@@ -529,6 +532,28 @@ public class DecisionMaker {
         State currentState = state.copyState();
         return currentState.changeTireFuelAndTirePressure(a.getTireModel(),
                 a.getFuel(), a.getTirePressure());
+    }
+
+    /**
+     * helper method that check whether current gas in tank is enough for next move
+     *
+     * @param state
+     * @return
+     */
+    private boolean outOfGas(State state) {
+        int[][] fuelUsage = ps.getFuelUsage();
+        int position = state.getPos();
+        List<Terrain> terrainList = ps.getTerrainOrder();
+        Terrain currentTerrain = terrainList.get(position);
+        int terrainIndex = ps.getTerrainIndex(currentTerrain);
+        int carIndex = ps.getCarIndex(state.getCarType());
+        //out of oil
+        if(state.getFuel() <= fuelUsage[terrainIndex][carIndex]) {
+            return true;
+        } else {
+            return false;
+        }
+
     }
 
 }

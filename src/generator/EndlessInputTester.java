@@ -162,11 +162,14 @@ public class EndlessInputTester {
         for (int i=1;i<ps.getN()+1;i++)
             fullTerrainInt.add(i);
         Collections.shuffle(fullTerrainInt);
-        int divide = (ps.getN()/ps.terrainOrder.size());
-        for (int i=0;i<ps.terrainOrder.size()-1;i++) {
-            terrainListList.put(ps.terrainOrder.get(i),fullTerrainInt.subList(divide * i, divide * (i+1)));
+
+
+        int divide = (ps.getN()/ps.getTerrainOrder().size());
+        for (int i=0;i<ps.getTerrainOrder().size()-1;i++) {
+            terrainListList.put(ps.getTerrainOrder().get(i),fullTerrainInt.subList(divide * i, divide * (i+1)));
         }
-        terrainListList.put(ps.terrainOrder.get(ps.terrainOrder.size()-1),fullTerrainInt.subList(divide*(ps.terrainOrder.size()-1),fullTerrainInt.size()));
+        terrainListList.put(ps.getTerrainOrder().get(ps.getTerrainOrder().size()-1),fullTerrainInt.subList(divide*(ps.getTerrainOrder().size()-1),fullTerrainInt.size()));
+
         return terrainListList;
     }
 }
