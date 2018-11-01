@@ -8,8 +8,6 @@ import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
 public class DecisionMaker {
-    //-4*(1/12) + -3*(1/12) .... + 4*(1/12) + 5*(1/12) = 5/12 = 0.417
-    private final float AVERAGE_MOVE_DIS = 0.417f;
     private LinkedList<Action> actionSequence;
     private ProblemSpec ps;
     private List<TirePressure> pressures;
@@ -93,13 +91,15 @@ public class DecisionMaker {
      * @return value of the sequence actions
      */
     private float getValue(State state, List<Action> actions, float discount) {
-        float value = getReward(state);
+        float value;
         State tempState = state.copyState();
+        //average step distance for each time step
+        float averageStep = ps.getN()/ps.getMaxT();
         for(int i = 0; i < actions.size() - 1; i++) {
             tempState = act(tempState, actions.get(i));
             //value += Math.pow(discount, i + 1) * (getReward(tempState));
         }
-        value = getReward(tempState);
+        value = getReward(tempState) - actions.size() * averageStep;
         return value;
     }
 
@@ -142,12 +142,14 @@ public class DecisionMaker {
     /**
      * The reward will based on current state and will foc on
      * the distance that each action can take
-     * R(s) = (Σprobs[i] * stepDistance) - (slipTime / totalTime) * slipTime
-     *          - (breakTime / totalTime) * breakTime;
+     * R(s) = (Σprobs[i] * stepDistance) - averageStep * (slipTime / totalTime) * slipTime
+     *          - averageStep * (breakTime / totalTime) * breakTime;
      * @return current reward
      */
     private float getReward(State state) {
         List<Double> probs = getProbs(state);
+        //average step distance for each time step
+        float averageStep = ps.getN()/ps.getMaxT();
         float reward = 0f;
         int breakTime = ps.getRepairTime();
         int slipTime = ps.getSlipRecoveryTime();
@@ -163,9 +165,9 @@ public class DecisionMaker {
             for(int i = 0; i < CAR_MOVE_RANGE; i++) {
                 //slip or breakdown
                 if(i == 10) {
-                    reward = reward - (float)(AVERAGE_MOVE_DIS * slipTime * ((float)slipTime / totalTime) * probs.get(i));
+                    reward = reward - averageStep * (float)(slipTime * ((float)slipTime / totalTime) * probs.get(i));
                 } else if (i == 11) {
-                    reward = reward -  (float)(AVERAGE_MOVE_DIS * breakTime * ((float)breakTime / totalTime) * probs.get(i));
+                    reward = reward -  averageStep * (float)(breakTime * ((float)breakTime / totalTime) * probs.get(i));
                 } else {
                     reward += (CAR_MIN_MOVE + i) * probs.get(i);
                 }
@@ -413,6 +415,9 @@ public class DecisionMaker {
                 break;
             case CHANGE_PRESSURE:
                 for (TirePressure pressure: this.pressures) {
+                    if (pressure.asString().equals(state.getTirePressure().asString())) {
+                        continue;
+                    }
                     action = new Action(type, pressure);
                     actionList.add(action);
                     checkIfEnd(actionTypes, actionList, collector, ps, state);
