@@ -18,7 +18,7 @@ public class DecisionMakerTest {
 
         State state = State.getStartState(ps.getFirstCarType(),
                 ps.getFirstDriver(), ps.getFirstTireModel());
-        List<Action> bestActions = decisionMaker.findBestActions(state, 0.1f);
+        List<Action> bestActions = decisionMaker.prophetSearch(state, 0);
         for(int i = 0; i < bestActions.size(); i++) {
             System.out.println("Action " + i +": "+ bestActions.get(i).getActionType());
         }

@@ -83,26 +83,87 @@ public class DecisionMaker {
         return actionSequences.get(maxIndex);
     }
 
-    public List<Action> findBestActionsDepth(State state, int depth) {
-        //TODO
+//    private List<Action> findBestActionsDepth(State state, int depth) {
+//        List<List<Action>> actionSequences = getAllAction(state);
+//        //loop through all actions
+//        for(int i = 0; i < 26; i++) {
+//            List<StateProbs> subStatesProbs = getSubState(state, actionSequences.get(i));
+//            //for loop through all 12 different index [-4, 5, slip, breakdown]
+//            for(int j = 0; j < 12; j++) {
+//                State tempState = subStatesProbs.get(j).getState().copyState();
+//                int tempDepth = depth - 1;
+//                tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
+//                findBestActionsDepth(tempState, tempDepth);
+//                depth--;
+//            }
+//        }
+//        if(depth == 1) {
+//            findBestActions(state);
+//        }
+//
+//        return null;
+//    }
+    
+    public List<Action> prophetSearch(State state, int depth) {
         List<List<Action>> actionSequences = getAllAction(state);
-        //loop through all actions
-        for(int i = 0; i < 26; i++) {
-            List<StateProbs> subStatesProbs = getSubState(state, actionSequences.get(i));
-            //for loop through all 12 different index [-4, 5, slip, breakdown]
-            for(int j = 0; j < 12; j++) {
-                State tempState = subStatesProbs.get(j).getState().copyState();
-                int tempDepth = depth - 1;
-                tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
-                findBestActionsDepth(tempState, tempDepth);
-                depth--;
+        List<Action> rtn = null;
+        double max = -100;
+        for (List<Action> actions: actionSequences) {
+            List<StateProbs> subStates = getSubState(state, actions);
+            double tmp = 0;
+            for (StateProbs subState: subStates) {
+                tmp += subState.getProbability() * goDeep(subState.getState(), depth);
+            }
+            if (tmp > max) {
+                rtn = actions;
+                max = tmp;
             }
         }
-        if(depth == 1) {
-            findBestActions(state);
-        }
+        return rtn;
+    }
 
-        return null;
+    private double findBestValue(State state) {
+        List<List<Action>> actionSequences = this.getAllAction(state);
+        float values[] = new float[actionSequences.size()];
+        float maxValue = getValue(state, actionSequences.get(0));
+        for(int i = 1; i < actionSequences.size(); i++) {
+            values[i] = getValue(state, actionSequences.get(i));
+            if(maxValue < values[i]) {
+                maxValue = values[i];
+            }
+        }
+        return maxValue;
+    }
+
+    private double goDeep(State state, int depth) {
+        List<List<Action>> actionSequences = getAllAction(state);
+        double max = -100;
+        for (List<Action> actions: actionSequences) {
+            List<StateProbs> subStates = getSubState(state, actions);
+            if (depth == 0) {
+                double tmp = atEndState(subStates);
+                if (tmp > max) {
+                    max = tmp;
+                }
+            } else {
+                double sum = 0;
+                for (StateProbs subState: subStates) {
+                    sum += subState.getProbability() * goDeep(subState.getState(), depth - 1);
+                }
+                if (sum > max) {
+                    max = sum;
+                }
+            }
+        }
+        return max;
+    }
+
+    private double atEndState(List<StateProbs> subStates) {
+        double sum = 0;
+        for (StateProbs subState: subStates) {
+            sum += subState.getProbability() * findBestValue(subState.getState());
+        }
+        return sum;
     }
 
     private List<StateProbs> getSubState(State state, List<Action> actions) {
@@ -114,7 +175,7 @@ public class DecisionMaker {
         List<Double> probs= getProbs(tempState);
         for(int i = 0; i < CAR_MOVE_RANGE; i++) {
             tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
-            subStatesProbs.set(i, new StateProbs(tempState, probs.get(i)));
+            subStatesProbs.add(new StateProbs(tempState, probs.get(i)));
         }
         return subStatesProbs;
     }
