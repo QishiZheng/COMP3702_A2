@@ -29,7 +29,7 @@ public class DecisionMaker {
      */
     public Action getAction(State state) {
         if (actionSequence.isEmpty()) {
-            actionSequence = (LinkedList<Action>) findBestActions(state, (float) this.ps.getDiscountFactor());
+            actionSequence = (LinkedList<Action>) findBestActions(state);
         }
         return actionSequence.poll();
     }
@@ -67,20 +67,42 @@ public class DecisionMaker {
      * @param discount
      * @return
      */
-    public List<Action> findBestActions(State state, float discount) {
+    public List<Action> findBestActions(State state) {
         List<List<Action>> actionSequences = this.getAllAction(state);
         float values[] = new float[actionSequences.size()];
-        float maxValue = getValue(state, actionSequences.get(0), discount);
+        float maxValue = getValue(state, actionSequences.get(0));
         int maxIndex = 0;
         for(int i = 1; i < actionSequences.size(); i++) {
-            values[i] = getValue(state, actionSequences.get(i), discount);
+            values[i] = getValue(state, actionSequences.get(i));
             if(maxValue < values[i]) {
                 maxIndex = i;
                 maxValue = values[i];
             }
         }
-
         return actionSequences.get(maxIndex);
+    }
+
+    public List<Action> findBestActionsDepth(State state, int depth) {
+        List<List<Action>> actionSequences = getAllAction(state);
+        //loop through all actions
+        for(int i = 0; i < 26; i++) {
+            List<State> subStates = getSubState(state, actionSequences.get(i));
+            //for loop through all 12 different index [-4, 5, slip, breakdown]
+            for(int j = 0; j < 12; j++) {
+                State tempState = subStates.get(j).copyState();
+                int tempDepth = depth - 1;
+                tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
+                findBestActionsDepth(tempState, tempDepth);
+                depth--;
+            }
+        }
+        if(depth == 1) {
+            findBestActions(state);
+        }
+    }
+
+    private List<State> getSubState(State state, List<Action> actions) {
+        
     }
 
     /**
@@ -90,7 +112,7 @@ public class DecisionMaker {
      * @param state
      * @return value of the sequence actions
      */
-    private float getValue(State state, List<Action> actions, float discount) {
+    private float getValue(State state, List<Action> actions) {
         float value;
         State tempState = state.copyState();
         //average step distance for each time step
