@@ -110,6 +110,12 @@ public class DecisionMaker {
         double max = -100;
         for (List<Action> actions: actionSequences) {
             List<StateProbs> subStates = getSubState(state, actions);
+
+//            for (int i = 0; i < subStates.size(); i++) {
+//                System.out.println(subStates.get(i));
+//            }
+
+
             double tmp = 0;
             for (StateProbs subState: subStates) {
                 tmp += subState.getProbability() * goDeep(subState.getState(), depth);
@@ -166,17 +172,38 @@ public class DecisionMaker {
         return sum;
     }
 
+//    private List<StateProbs> getSubState(State state, List<Action> actions) {
+//        List<StateProbs> subStatesProbs = new ArrayList<>();
+//        State tempState = state.copyState();
+//        for(int i = 0; i < actions.size() - 1; i++) {
+//            tempState = act(tempState, actions.get(i));
+//        }
+//        List<Double> probs= getProbs(tempState);
+//        for(int i = 0; i < CAR_MOVE_RANGE; i++) {
+//            tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
+//            subStatesProbs.add(new StateProbs(tempState, probs.get(i)));
+//        }
+//        return subStatesProbs;
+//    }
+
+    /**
+     * get all substates of the current state after performing a series of given actions
+     * @param state current state
+     * @param actions given actions to perform
+     * @return a list of sub state and probs pairs
+     */
     private List<StateProbs> getSubState(State state, List<Action> actions) {
         List<StateProbs> subStatesProbs = new ArrayList<>();
         State tempState = state.copyState();
         for(int i = 0; i < actions.size() - 1; i++) {
             tempState = act(tempState, actions.get(i));
+            List<Double> probs= getProbs(tempState);
+            for(int j = 0; j < CAR_MOVE_RANGE; j++) {
+                tempState.changePosition(j + CAR_MIN_MOVE, ps.getN());
+                subStatesProbs.add(new StateProbs(tempState, probs.get(j)));
+            }
         }
-        List<Double> probs= getProbs(tempState);
-        for(int i = 0; i < CAR_MOVE_RANGE; i++) {
-            tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
-            subStatesProbs.add(new StateProbs(tempState, probs.get(i)));
-        }
+
         return subStatesProbs;
     }
 
