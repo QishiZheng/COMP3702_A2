@@ -1,6 +1,8 @@
 package problem;
 
 import simulator.State;
+
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -64,7 +66,6 @@ public class DecisionMaker {
      * based on given state and discount factor, find out best reward actions
      *
      * @param state
-     * @param discount
      * @return
      */
     public List<Action> findBestActions(State state) {
@@ -83,13 +84,14 @@ public class DecisionMaker {
     }
 
     public List<Action> findBestActionsDepth(State state, int depth) {
+        //TODO
         List<List<Action>> actionSequences = getAllAction(state);
         //loop through all actions
         for(int i = 0; i < 26; i++) {
-            List<State> subStates = getSubState(state, actionSequences.get(i));
+            List<StateProbs> subStatesProbs = getSubState(state, actionSequences.get(i));
             //for loop through all 12 different index [-4, 5, slip, breakdown]
             for(int j = 0; j < 12; j++) {
-                State tempState = subStates.get(j).copyState();
+                State tempState = subStatesProbs.get(j).getState().copyState();
                 int tempDepth = depth - 1;
                 tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
                 findBestActionsDepth(tempState, tempDepth);
@@ -99,10 +101,22 @@ public class DecisionMaker {
         if(depth == 1) {
             findBestActions(state);
         }
+
+        return null;
     }
 
-    private List<State> getSubState(State state, List<Action> actions) {
-        
+    private List<StateProbs> getSubState(State state, List<Action> actions) {
+        List<StateProbs> subStatesProbs = new ArrayList<>();
+        State tempState = state.copyState();
+        for(int i = 0; i < actions.size() - 1; i++) {
+            tempState = act(tempState, actions.get(i));
+        }
+        List<Double> probs= getProbs(tempState);
+        for(int i = 0; i < CAR_MOVE_RANGE; i++) {
+            tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
+            subStatesProbs.set(i, new StateProbs(tempState, probs.get(i)));
+        }
+        return subStatesProbs;
     }
 
     /**
