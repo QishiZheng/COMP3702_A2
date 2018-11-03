@@ -26,4 +26,8 @@ public class StateProbs {
     public void setProbability(double probability) {
         this.probability = probability;
     }
+
+    @Override
+    public String toString() { return this.state.toString() + this.probability + "\n"; }
+
 }
