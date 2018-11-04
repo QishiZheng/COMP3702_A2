@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import static problem.ProblemSpec.CAR_MAX_MOVE;
 import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
@@ -83,13 +84,13 @@ public class DecisionMaker {
         return actionSequences.get(maxIndex);
     }
 
-//    private List<Action> findBestActionsDepth(State state, int depth) {
+//    public List<Action> findBestActionsDepth(State state, int depth) {
 //        List<List<Action>> actionSequences = getAllAction(state);
 //        //loop through all actions
-//        for(int i = 0; i < 26; i++) {
+//        for(int i = 0; i < actionSequence.size(); i++) {
 //            List<StateProbs> subStatesProbs = getSubState(state, actionSequences.get(i));
 //            //for loop through all 12 different index [-4, 5, slip, breakdown]
-//            for(int j = 0; j < 12; j++) {
+//            for(int j = 0; j < CAR_MOVE_RANGE; j++) {
 //                State tempState = subStatesProbs.get(j).getState().copyState();
 //                int tempDepth = depth - 1;
 //                tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
@@ -172,29 +173,21 @@ public class DecisionMaker {
         return sum;
     }
 
-//    private List<StateProbs> getSubState(State state, List<Action> actions) {
-//        List<StateProbs> subStatesProbs = new ArrayList<>();
-//        State tempState = state.copyState();
-//        for(int i = 0; i < actions.size() - 1; i++) {
-//            tempState = act(tempState, actions.get(i));
-//        }
-//        List<Double> probs= getProbs(tempState);
-//        for(int i = 0; i < CAR_MOVE_RANGE; i++) {
-//            tempState.changePosition(i + CAR_MIN_MOVE, ps.getN());
-//            subStatesProbs.add(new StateProbs(tempState, probs.get(i)));
-//        }
-//        return subStatesProbs;
-//    }
-
     /**
      * get all substates of the current state after performing a series of given actions
      * @param state current state
      * @param actions given actions to perform
      * @return a list of sub state and probs pairs
      */
-    private List<StateProbs> getSubState(State state, List<Action> actions) {
+    public List<StateProbs> getSubState(State state, List<Action> actions) {
         List<StateProbs> subStatesProbs = new ArrayList<>();
         State tempState = state.copyState();
+        if(actions.size() == 1) {
+            List<Double> probs= getProbs(tempState);
+            for(int i = 0; i < CAR_MOVE_RANGE; i++) {
+                subStatesProbs.add(new StateProbs(tempState, probs.get(i)));
+            }
+        }
         for(int i = 0; i < actions.size() - 1; i++) {
             tempState = act(tempState, actions.get(i));
             List<Double> probs= getProbs(tempState);
