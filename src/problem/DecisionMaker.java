@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import static problem.ProblemSpec.CAR_MAX_MOVE;
 import static problem.ProblemSpec.CAR_MIN_MOVE;
 import static problem.ProblemSpec.CAR_MOVE_RANGE;
 
@@ -665,12 +664,25 @@ public class DecisionMaker {
     private boolean outOfGas(State state) {
         int[][] fuelUsage = ps.getFuelUsage();
         int position = state.getPos();
+        TirePressure pressure = state.getTirePressure();
+        double pressureEffects = 0;
+
         List<Terrain> terrainList = ps.getTerrainOrder();
         Terrain currentTerrain = terrainList.get(position);
         int terrainIndex = ps.getTerrainIndex(currentTerrain);
         int carIndex = ps.getCarIndex(state.getCarType());
+
+        
+        if(pressure == TirePressure.ONE_HUNDRED_PERCENT) {
+            pressureEffects = 1;
+        } else if (pressure == TirePressure.SEVENTY_FIVE_PERCENT){
+            pressureEffects = 2;
+        } else if (pressure == TirePressure.FIFTY_PERCENT){
+            pressureEffects = 3;
+        }
+
         //out of oil
-        if(state.getFuel() <= fuelUsage[terrainIndex][carIndex]) {
+        if(state.getFuel() <= (fuelUsage[terrainIndex][carIndex] * pressureEffects)) {
             return true;
         } else {
             return false;

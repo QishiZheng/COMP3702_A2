@@ -13,7 +13,7 @@ public class DecisionMakerTest {
     @Test
     public void findBestActions() throws Exception {
         int level = 1;
-        ProblemSpec ps = new ProblemSpec("examples/level_" + level + "/input_lvl" + level + ".txt");
+        ProblemSpec ps = new ProblemSpec("examples/level_" + level + "/input_lvl" + level + "_2.txt");
         DecisionMaker decisionMaker = new DecisionMaker(ps);
 
         State state = State.getStartState(ps.getFirstCarType(),
@@ -26,9 +26,9 @@ public class DecisionMakerTest {
 
     @Test
     public void completeTest1() throws IOException {
-        int level = 1;
-        String inputFile = "examples/level_" + level + "/input_lvl" + level + ".txt";
-        String outputFile = "examples/level_" + level + "/test_output_lvl" + level + ".txt";;
+        int level = 2;
+        String inputFile = "examples/level_" + level + "/input_lvl" + level + "_2.txt";
+        String outputFile = "examples/level_" + level + "/test_output_lvl" + level + "_2.txt";;
         ProblemSpec ps = new ProblemSpec(inputFile);
         Simulator sim = new Simulator(ps, outputFile);
         DecisionMaker dm = new DecisionMaker(ps);
