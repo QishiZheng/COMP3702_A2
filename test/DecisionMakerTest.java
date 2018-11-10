@@ -26,7 +26,7 @@ public class DecisionMakerTest {
 
     @Test
     public void completeTest1() throws IOException {
-        int level = 2;
+        int level = 1;
         String inputFile = "examples/level_" + level + "/input_lvl" + level + "_2.txt";
         String outputFile = "examples/level_" + level + "/test_output_lvl" + level + "_2.txt";;
         ProblemSpec ps = new ProblemSpec(inputFile);

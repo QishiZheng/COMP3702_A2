@@ -69,6 +69,14 @@ public class DecisionMaker {
      * @return
      */
     public List<Action> findBestActions(State state) {
+        //out of gas, we change car type
+        if(outOfGas(state)) {
+            Action newAction = new Action(ActionType.CHANGE_CAR, randomCarType(state));
+            List<Action> newActions = new LinkedList<>();
+            newActions.add(newAction);
+            return newActions;
+        }
+
         List<List<Action>> actionSequences = this.getAllAction(state);
         float values[] = new float[actionSequences.size()];
         float maxValue = getValue(state, actionSequences.get(0));
@@ -662,32 +670,49 @@ public class DecisionMaker {
      * @return
      */
     private boolean outOfGas(State state) {
-        int[][] fuelUsage = ps.getFuelUsage();
-        int position = state.getPos();
-        TirePressure pressure = state.getTirePressure();
-        double pressureEffects = 0;
-
-        List<Terrain> terrainList = ps.getTerrainOrder();
-        Terrain currentTerrain = terrainList.get(position);
-        int terrainIndex = ps.getTerrainIndex(currentTerrain);
-        int carIndex = ps.getCarIndex(state.getCarType());
-
-        
-        if(pressure == TirePressure.ONE_HUNDRED_PERCENT) {
-            pressureEffects = 1;
-        } else if (pressure == TirePressure.SEVENTY_FIVE_PERCENT){
-            pressureEffects = 2;
-        } else if (pressure == TirePressure.FIFTY_PERCENT){
-            pressureEffects = 3;
-        }
-
+        int consumption = getFuelConsumption(state);
         //out of oil
-        if(state.getFuel() <= (fuelUsage[terrainIndex][carIndex] * pressureEffects)) {
+        if(state.getFuel() <= consumption) {
             return true;
         } else {
             return false;
         }
+    }
 
+
+    /**
+     * Get the fuel consumption of moving given the current state
+     *
+     * @return move fuel consumption for current state
+     */
+    private int getFuelConsumption(State state) {
+        // get parameters of current state
+        Terrain terrain = ps.getEnvironmentMap()[state.getPos() - 1];
+        String car = state.getCarType();
+        TirePressure pressure = state.getTirePressure();
+
+        // get fuel consumption
+        int terrainIndex = ps.getTerrainIndex(terrain);
+        int carIndex = ps.getCarIndex(car);
+        int fuelConsumption = ps.getFuelUsage()[terrainIndex][carIndex];
+
+        if (pressure == TirePressure.FIFTY_PERCENT) {
+            fuelConsumption *= 3;
+        } else if (pressure == TirePressure.SEVENTY_FIVE_PERCENT) {
+            fuelConsumption *= 2;
+        }
+        return fuelConsumption;
+    }
+
+
+    private String randomCarType(State state) {
+        List<String> carTypes = ps.getCarOrder();
+        for(int i = 0; i < carTypes.size(); i++) {
+            if(!carTypes.get(i).equals(state.getCarType())) {
+                return carTypes.get(i);
+            }
+        }
+        return state.getCarType();
     }
 
 }
